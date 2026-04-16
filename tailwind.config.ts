@@ -11,6 +11,15 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        mint: "#6EE7C7",
+        periwinkle: "#8B9FFF",
+      },
+      backgroundImage: {
+        "brand-gradient": "linear-gradient(135deg, #6EE7C7 0%, #8B9FFF 100%)",
+        "brand-gradient-r": "linear-gradient(135deg, #8B9FFF 0%, #6EE7C7 100%)",
+      },
+      animation: {
+        "spin-slow": "spin 3s linear infinite",
       },
     },
   },
