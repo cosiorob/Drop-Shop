@@ -110,7 +110,7 @@ insert into categories (name, slug, icon) values
 on conflict (slug) do nothing;
 
 -- ============================================================
--- Enable Row Level Security
+-- Row Level Security
 -- ============================================================
 alter table profiles enable row level security;
 alter table stores enable row level security;
@@ -121,49 +121,81 @@ alter table entries enable row level security;
 alter table follows enable row level security;
 alter table notifications enable row level security;
 
--- profiles: users can read/update their own
-create policy if not exists "profiles_select_own" on profiles for select using (auth.uid() = id);
-create policy if not exists "profiles_insert_own" on profiles for insert with check (auth.uid() = id);
-create policy if not exists "profiles_update_own" on profiles for update using (auth.uid() = id);
+-- Drop existing policies to avoid conflicts, then recreate
+do $$ begin
 
--- stores: owner can CRUD their own; public can read
-create policy if not exists "stores_select_all" on stores for select using (true);
-create policy if not exists "stores_insert_own" on stores for insert with check (auth.uid() = owner_id);
-create policy if not exists "stores_update_own" on stores for update using (auth.uid() = owner_id);
+  -- profiles
+  drop policy if exists "profiles_select_own" on profiles;
+  drop policy if exists "profiles_insert_own" on profiles;
+  drop policy if exists "profiles_update_own" on profiles;
+
+  -- stores
+  drop policy if exists "stores_select_all" on stores;
+  drop policy if exists "stores_insert_own" on stores;
+  drop policy if exists "stores_update_own" on stores;
+
+  -- categories
+  drop policy if exists "categories_select_all" on categories;
+
+  -- drops
+  drop policy if exists "drops_select_all" on drops;
+  drop policy if exists "drops_insert_own" on drops;
+  drop policy if exists "drops_update_own" on drops;
+
+  -- drop_images
+  drop policy if exists "drop_images_select_all" on drop_images;
+  drop policy if exists "drop_images_insert_own" on drop_images;
+
+  -- entries
+  drop policy if exists "entries_select_own" on entries;
+  drop policy if exists "entries_insert_auth" on entries;
+
+  -- follows
+  drop policy if exists "follows_select_own" on follows;
+  drop policy if exists "follows_insert_own" on follows;
+  drop policy if exists "follows_delete_own" on follows;
+
+  -- notifications
+  drop policy if exists "notifications_select_own" on notifications;
+  drop policy if exists "notifications_update_own" on notifications;
+
+end $$;
+
+-- profiles
+create policy "profiles_select_own" on profiles for select using (auth.uid() = id);
+create policy "profiles_insert_own" on profiles for insert with check (auth.uid() = id);
+create policy "profiles_update_own" on profiles for update using (auth.uid() = id);
+
+-- stores: public read
+create policy "stores_select_all" on stores for select using (true);
+create policy "stores_insert_own" on stores for insert with check (auth.uid() = owner_id);
+create policy "stores_update_own" on stores for update using (auth.uid() = owner_id);
 
 -- categories: public read
-create policy if not exists "categories_select_all" on categories for select using (true);
+create policy "categories_select_all" on categories for select using (true);
 
--- drops: public read; owner store can CRUD
-create policy if not exists "drops_select_all" on drops for select using (true);
-create policy if not exists "drops_insert_own" on drops for insert with check (
+-- drops: public read
+create policy "drops_select_all" on drops for select using (true);
+create policy "drops_insert_own" on drops for insert with check (
   exists (select 1 from stores where id = store_id and owner_id = auth.uid())
 );
-create policy if not exists "drops_update_own" on drops for update using (
+create policy "drops_update_own" on drops for update using (
   exists (select 1 from stores where id = store_id and owner_id = auth.uid())
 );
 
 -- drop_images: public read
-create policy if not exists "drop_images_select_all" on drop_images for select using (true);
-create policy if not exists "drop_images_insert_own" on drop_images for insert with check (true);
+create policy "drop_images_select_all" on drop_images for select using (true);
+create policy "drop_images_insert_own" on drop_images for insert with check (true);
 
--- entries: authenticated users can insert; read own
-create policy if not exists "entries_select_own" on entries for select using (auth.uid() = user_id);
-create policy if not exists "entries_insert_auth" on entries for insert with check (auth.uid() = user_id);
+-- entries
+create policy "entries_select_own" on entries for select using (auth.uid() = user_id);
+create policy "entries_insert_auth" on entries for insert with check (auth.uid() = user_id);
 
--- follows: own rows
-create policy if not exists "follows_select_own" on follows for select using (auth.uid() = user_id);
-create policy if not exists "follows_insert_own" on follows for insert with check (auth.uid() = user_id);
-create policy if not exists "follows_delete_own" on follows for delete using (auth.uid() = user_id);
+-- follows
+create policy "follows_select_own" on follows for select using (auth.uid() = user_id);
+create policy "follows_insert_own" on follows for insert with check (auth.uid() = user_id);
+create policy "follows_delete_own" on follows for delete using (auth.uid() = user_id);
 
--- notifications: own rows
-create policy if not exists "notifications_select_own" on notifications for select using (auth.uid() = user_id);
-create policy if not exists "notifications_update_own" on notifications for update using (auth.uid() = user_id);
-
--- ============================================================
--- Enable Realtime on drops and notifications
--- (Run in Supabase Dashboard → Database → Replication instead,
---  or uncomment if your plan supports it via SQL)
--- ============================================================
--- alter publication supabase_realtime add table drops;
--- alter publication supabase_realtime add table notifications;
+-- notifications
+create policy "notifications_select_own" on notifications for select using (auth.uid() = user_id);
+create policy "notifications_update_own" on notifications for update using (auth.uid() = user_id);
