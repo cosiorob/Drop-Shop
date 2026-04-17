@@ -1,24 +1,39 @@
 import { createClient } from '@/lib/supabase-server'
 import type { Drop, Category } from '@/types'
 
-export async function getActiveDropsByCategory(): Promise<
-  { category: Category; drops: Drop[] }[]
-> {
+export async function getActiveDrops(): Promise<Drop[]> {
   const supabase = createClient()
 
-  const { data: categories } = await supabase
-    .from('categories')
-    .select('*')
-    .order('name')
-
-  if (!categories) return []
-
-  const { data: drops } = await supabase
+  const { data: drops, error: dropErr } = await supabase
     .from('drops')
     .select('*, store:stores(*), category:categories(*), drop_images(*)')
     .eq('status', 'active')
     .order('created_at', { ascending: false })
 
+  if (dropErr) throw new Error(`DB error (drops): ${dropErr.message}`)
+  return drops ?? []
+}
+
+export async function getActiveDropsByCategory(): Promise<
+  { category: Category; drops: Drop[] }[]
+> {
+  const supabase = createClient()
+
+  const { data: categories, error: catErr } = await supabase
+    .from('categories')
+    .select('*')
+    .order('name')
+
+  if (catErr) throw new Error(`DB error (categories): ${catErr.message}`)
+  if (!categories) return []
+
+  const { data: drops, error: dropErr } = await supabase
+    .from('drops')
+    .select('*, store:stores(*), category:categories(*), drop_images(*)')
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+
+  if (dropErr) throw new Error(`DB error (drops): ${dropErr.message}`)
   if (!drops) return []
 
   return categories
