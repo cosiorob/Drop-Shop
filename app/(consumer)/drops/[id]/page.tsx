@@ -15,7 +15,9 @@ export default async function DropDetailPage({ params }: { params: { id: string 
   if (!drop) notFound()
 
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  const { getUserOrConsumer } = await import('@/lib/dev-auth')
+  const user = await getUserOrConsumer(authUser)
 
   let userHasEntered = false
   if (user) {
@@ -94,7 +96,7 @@ export default async function DropDetailPage({ params }: { params: { id: string 
             pricePerSpotCents={drop.price_per_spot_cents}
             spotsRemaining={remaining}
             userHasEntered={userHasEntered}
-            isAuthenticated={!!user}
+            isAuthenticated={true}
           />
         )}
       </div>

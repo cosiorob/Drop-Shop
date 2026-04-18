@@ -1,15 +1,16 @@
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase-server'
 import { formatCents } from '@/lib/format'
 import { LogOut } from 'lucide-react'
+import { getUserOrConsumer } from '@/lib/dev-auth'
 import type { Drop } from '@/types'
 
 export default async function ProfilePage() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  const user = await getUserOrConsumer(authUser)
+  if (!user) return <p className="p-8 text-gray-500">Run /api/seed?secret=dropshop-seed first.</p>
 
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
   const { data: entries } = await supabase

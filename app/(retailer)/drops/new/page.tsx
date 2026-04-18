@@ -1,14 +1,15 @@
-import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import { DropForm } from '@/components/retailer/DropForm'
+import { getUserOrRetailer, getStoreOrFirst } from '@/lib/dev-auth'
 
 export default async function NewDropPage() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  const user = await getUserOrRetailer(authUser)
+  if (!user) return <p className="p-8 text-gray-500">Run /api/seed?secret=dropshop-seed first.</p>
 
-  const { data: store } = await supabase.from('stores').select('*').eq('owner_id', user.id).single()
-  if (!store) redirect('/signup/retailer')
+  const store = await getStoreOrFirst(user.id)
+  if (!store) return <p className="p-8 text-gray-500">No store found.</p>
 
   const { data: categories } = await supabase.from('categories').select('*').order('name')
 

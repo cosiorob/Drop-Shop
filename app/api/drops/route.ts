@@ -18,7 +18,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  const { getUserOrRetailer } = await import('@/lib/dev-auth')
+  const user = await getUserOrRetailer(authUser)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await request.json()

@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
 import { getStripe } from '@/lib/stripe'
+import { getUserOrConsumer } from '@/lib/dev-auth'
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  const user = await getUserOrConsumer(authUser)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   // Fetch drop

@@ -2,14 +2,13 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
 
 interface ClaimButtonProps {
   dropId: string
   pricePerSpotCents: number
   spotsRemaining: number
   userHasEntered: boolean
-  isAuthenticated: boolean
+  isAuthenticated?: boolean
 }
 
 export function ClaimButton({
@@ -17,7 +16,6 @@ export function ClaimButton({
   pricePerSpotCents,
   spotsRemaining,
   userHasEntered,
-  isAuthenticated,
 }: ClaimButtonProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -40,23 +38,19 @@ export function ClaimButton({
   }
 
   async function handleClaim() {
-    if (!isAuthenticated) {
-      router.push('/login')
-      return
-    }
-
     setLoading(true)
     setError('')
 
-    const { data: { session } } = await supabase.auth.getSession()
-
+    // Cookie-based auth is handled automatically by the server
     const res = await fetch(`/api/drops/${dropId}/enter`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${session?.access_token}`,
-      },
+      headers: { 'Content-Type': 'application/json' },
     })
+
+    if (res.status === 401) {
+      router.push(`/login?redirect=/drops/${dropId}`)
+      return
+    }
 
     const json = await res.json()
 
@@ -66,7 +60,6 @@ export function ClaimButton({
       return
     }
 
-    // Redirect to Stripe Checkout page
     if (json.url) {
       window.location.href = json.url
     } else {

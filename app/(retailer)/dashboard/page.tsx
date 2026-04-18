@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase-server'
@@ -6,15 +5,17 @@ import { getRetailerDrops } from '@/lib/drops'
 import { formatCents } from '@/lib/format'
 import { Badge } from '@/components/ui/Badge'
 import { PlusCircle } from 'lucide-react'
+import { getUserOrRetailer, getStoreOrFirst } from '@/lib/dev-auth'
 import type { Drop } from '@/types'
 
 export default async function DashboardPage() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  const user = await getUserOrRetailer(authUser)
+  if (!user) return <p className="p-8 text-gray-500">Run /api/seed?secret=dropshop-seed first.</p>
 
-  const { data: store } = await supabase.from('stores').select('*').eq('owner_id', user.id).single()
-  if (!store) redirect('/signup/retailer')
+  const store = await getStoreOrFirst(user.id)
+  if (!store) return <p className="p-8 text-gray-500">No store found. Run the seed endpoint.</p>
 
   const drops: Drop[] = await getRetailerDrops(store.id)
 
@@ -66,26 +67,34 @@ export default async function DashboardPage() {
           ) : (
             <div className="space-y-2">
               {items.map((drop) => (
-                <Link
-                  key={drop.id}
-                  href={`/drops/${drop.id}/edit`}
-                  className="flex items-center gap-4 bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow"
-                >
-                  <div className="relative w-12 h-12 rounded-xl bg-gray-100 overflow-hidden flex-none">
-                    {drop.drop_images?.[0]?.url ? (
-                      <Image src={drop.drop_images[0].url} alt={drop.title} fill className="object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xl">🎁</div>
+                <div key={drop.id} className="flex items-center gap-4 bg-white rounded-2xl p-4 shadow-sm">
+                  <Link href={`/drops/${drop.id}/edit`} className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="relative w-12 h-12 rounded-xl bg-gray-100 overflow-hidden flex-none">
+                      {drop.drop_images?.[0]?.url ? (
+                        <Image src={drop.drop_images[0].url} alt={drop.title} fill className="object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xl">🎁</div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900 text-sm truncate">{drop.title}</p>
+                      <p className="text-xs text-gray-400">
+                        {drop.spots_claimed}/{drop.total_spots} spots · {formatCents(drop.price_per_spot_cents)}/spot
+                      </p>
+                    </div>
+                  </Link>
+                  <div className="flex items-center gap-2 flex-none">
+                    {drop.spots_claimed > 0 && (
+                      <Link
+                        href={`/drops/${drop.id}/draw`}
+                        className="px-3 py-1.5 rounded-xl bg-brand-gradient text-white text-xs font-bold shadow-sm hover:opacity-90"
+                      >
+                        Draw
+                      </Link>
                     )}
+                    <Badge status={drop.status} />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 text-sm truncate">{drop.title}</p>
-                    <p className="text-xs text-gray-400">
-                      {drop.spots_claimed}/{drop.total_spots} spots · {formatCents(drop.price_per_spot_cents)}/spot
-                    </p>
-                  </div>
-                  <Badge status={drop.status} />
-                </Link>
+                </div>
               ))}
             </div>
           )}

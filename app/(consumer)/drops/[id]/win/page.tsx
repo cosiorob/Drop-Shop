@@ -1,21 +1,12 @@
-import { notFound, redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { getDropById } from '@/lib/drops'
-import { createClient } from '@/lib/supabase-server'
 import { formatCents } from '@/lib/format'
 
 export default async function WinPage({ params }: { params: { id: string } }) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) redirect('/login')
-
   const drop = await getDropById(params.id)
   if (!drop) notFound()
-
-  // Only the winner can see this page
-  if (drop.winner_id !== user.id) redirect(`/drops/${params.id}`)
 
   const image = drop.drop_images?.[0]?.url ?? null
   const shareText = encodeURIComponent(`I just won a ${drop.title} on DROPSHOP! 🎉 Take a bet on retail → dropshop.com`)
