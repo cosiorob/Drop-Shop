@@ -26,12 +26,11 @@ export default async function DropDetailPage({ params }: { params: { id: string 
       .select('id')
       .eq('drop_id', drop.id)
       .eq('user_id', user.id)
-      .single()
-    userHasEntered = !!data
+      .limit(1)
+    userHasEntered = !!(data && data.length > 0)
   }
 
   const images = drop.drop_images ?? []
-  const remaining = drop.total_spots - drop.spots_claimed
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
@@ -90,13 +89,10 @@ export default async function DropDetailPage({ params }: { params: { id: string 
         )}
 
         {/* Claim */}
-        {drop.status === 'active' && (
+        {drop.status === 'active' && drop.store && (
           <ClaimButton
-            dropId={drop.id}
-            pricePerSpotCents={drop.price_per_spot_cents}
-            spotsRemaining={remaining}
+            drop={{ ...drop, store: drop.store }}
             userHasEntered={userHasEntered}
-            isAuthenticated={true}
           />
         )}
       </div>

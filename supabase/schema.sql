@@ -68,8 +68,10 @@ create table if not exists entries (
   drop_id uuid references drops(id) on delete cascade,
   user_id uuid references profiles(id) on delete cascade,
   stripe_payment_intent_id text,
-  created_at timestamptz default now(),
-  unique(drop_id, user_id)
+  spots_count integer not null default 1 check (spots_count between 1 and 10),
+  selected_number integer check (selected_number between 1 and 10),
+  created_at timestamptz default now()
+  -- no unique(drop_id, user_id) — multi-entry per user allowed
 );
 
 -- follows

@@ -27,26 +27,29 @@ export async function POST(request: Request) {
     const session = event.data.object as Stripe.Checkout.Session
     const dropId = session.metadata?.drop_id
     const userId = session.metadata?.user_id
+    const spotsCount = parseInt(session.metadata?.spots_count ?? '1', 10) || 1
+    const selectedNumber = session.metadata?.selected_number
+      ? parseInt(session.metadata.selected_number, 10)
+      : null
 
     if (!dropId || !userId) return NextResponse.json({ error: 'Missing metadata' }, { status: 400 })
 
-    // Check not already entered (idempotency)
+    // Idempotency: skip if this payment intent already created an entry
     const { data: existing } = await getSupabaseAdmin()
       .from('entries')
       .select('id')
-      .eq('drop_id', dropId)
-      .eq('user_id', userId)
-      .single()
+      .eq('stripe_payment_intent_id', session.payment_intent as string)
+      .maybeSingle()
 
     if (!existing) {
-      // Insert entry
       await getSupabaseAdmin().from('entries').insert({
         drop_id: dropId,
         user_id: userId,
         stripe_payment_intent_id: session.payment_intent as string,
+        spots_count: spotsCount,
+        selected_number: selectedNumber,
       })
 
-      // Increment spots_claimed atomically
       const { data: drop } = await getSupabaseAdmin()
         .from('drops')
         .select('spots_claimed, total_spots, status')
@@ -54,13 +57,12 @@ export async function POST(request: Request) {
         .single()
 
       if (drop) {
-        const newClaimed = drop.spots_claimed + 1
+        const newClaimed = drop.spots_claimed + spotsCount
         await getSupabaseAdmin()
           .from('drops')
           .update({ spots_claimed: newClaimed })
           .eq('id', dropId)
 
-        // Auto-draw if full
         if (newClaimed >= drop.total_spots && drop.status === 'active') {
           await getSupabaseAdmin().from('drops').update({ status: 'closed' }).eq('id', dropId)
           await selectWinner(dropId)

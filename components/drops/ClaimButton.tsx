@@ -1,25 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { EntryModal } from './EntryModal'
+import type { Drop, Store } from '@/types'
 
 interface ClaimButtonProps {
-  dropId: string
-  pricePerSpotCents: number
-  spotsRemaining: number
+  drop: Drop & { store: Store }
   userHasEntered: boolean
-  isAuthenticated?: boolean
 }
 
-export function ClaimButton({
-  dropId,
-  pricePerSpotCents,
-  spotsRemaining,
-  userHasEntered,
-}: ClaimButtonProps) {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+export function ClaimButton({ drop, userHasEntered }: ClaimButtonProps) {
+  const [modalOpen, setModalOpen] = useState(false)
+  const spotsRemaining = drop.total_spots - drop.spots_claimed
 
   if (spotsRemaining === 0) {
     return (
@@ -32,52 +24,25 @@ export function ClaimButton({
   if (userHasEntered) {
     return (
       <div className="w-full py-4 text-center rounded-2xl bg-green-50 text-green-700 font-semibold border-2 border-green-200">
-        ✓ You&apos;re In!
+        ✓ You&apos;re In! <span className="font-normal text-sm">(Enter again for more spots)</span>
       </div>
     )
   }
 
-  async function handleClaim() {
-    setLoading(true)
-    setError('')
-
-    // Cookie-based auth is handled automatically by the server
-    const res = await fetch(`/api/drops/${dropId}/enter`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    })
-
-    if (res.status === 401) {
-      router.push(`/login?redirect=/drops/${dropId}`)
-      return
-    }
-
-    const json = await res.json()
-
-    if (!res.ok) {
-      setError(json.error ?? 'Something went wrong')
-      setLoading(false)
-      return
-    }
-
-    if (json.url) {
-      window.location.href = json.url
-    } else {
-      setError('No checkout URL returned')
-      setLoading(false)
-    }
-  }
-
   return (
-    <div className="space-y-2">
+    <>
       <button
-        onClick={handleClaim}
-        disabled={loading}
-        className="w-full py-4 rounded-2xl bg-brand-gradient text-white font-bold text-base shadow-md hover:opacity-90 transition-opacity disabled:opacity-60"
+        onClick={() => setModalOpen(true)}
+        className="w-full py-4 rounded-2xl bg-brand-gradient text-white font-bold text-base shadow-md hover:opacity-90 transition-opacity"
       >
-        {loading ? 'Processing…' : `Claim Your Spot — $${(pricePerSpotCents / 100).toFixed(0)}`}
+        Claim Your Spot — ${(drop.price_per_spot_cents / 100).toFixed(0)}
       </button>
-      {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-    </div>
+
+      <EntryModal
+        drop={drop}
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+      />
+    </>
   )
 }

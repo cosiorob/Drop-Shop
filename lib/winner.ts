@@ -7,25 +7,27 @@ export async function selectWinner(dropId: string): Promise<string | null> {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  // Fetch all entries for this drop
   const { data: entries, error } = await supabase
     .from('entries')
-    .select('user_id')
+    .select('user_id, spots_count')
     .eq('drop_id', dropId)
 
   if (error || !entries || entries.length === 0) return null
 
-  // Random pick
-  const winner = entries[Math.floor(Math.random() * entries.length)]
-  const winnerId = winner.user_id
+  // Build weighted pool: each entry appears spots_count times
+  const pool: string[] = []
+  for (const entry of entries) {
+    const count = entry.spots_count ?? 1
+    for (let i = 0; i < count; i++) pool.push(entry.user_id)
+  }
 
-  // Update drop: set winner, mark completed
+  const winnerId = pool[Math.floor(Math.random() * pool.length)]
+
   await supabase
     .from('drops')
     .update({ winner_id: winnerId, status: 'completed' })
     .eq('id', dropId)
 
-  // Insert win notification
   await supabase.from('notifications').insert({
     user_id: winnerId,
     type: 'win',

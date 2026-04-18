@@ -65,6 +65,8 @@ export interface Entry {
   drop_id: string
   user_id: string
   stripe_payment_intent_id: string | null
+  spots_count: number
+  selected_number: number | null
   created_at: string
 }
 

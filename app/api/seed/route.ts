@@ -339,6 +339,8 @@ export async function GET(request: Request) {
       drop_id: completedDrop.id,
       user_id: consumerAuth.user.id,
       stripe_payment_intent_id: 'seed_pi_completed',
+      spots_count: 2,
+      selected_number: 7,
     })
 
     await supabase.from('notifications').insert({
@@ -360,6 +362,8 @@ export async function GET(request: Request) {
         drop_id: d.id,
         user_id: consumerAuth.user.id,
         stripe_payment_intent_id: `seed_pi_${d.id.slice(0, 8)}`,
+        spots_count: 1,
+        selected_number: 3,
       })
       log.push(`Added consumer entry to: ${d.title}`)
     }
