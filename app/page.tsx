@@ -78,11 +78,11 @@ export default async function RootPage() {
 
         <div className="flex flex-col sm:flex-row justify-center gap-3">
           <Link
-            href="/signup"
+            href="/feed"
             className="inline-block px-8 py-4 rounded-2xl font-bold text-base shadow-lg text-white"
             style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)', border: '2px solid rgba(255,255,255,0.4)' }}
           >
-            Start Shopping
+            Browse Drops
           </Link>
           <Link
             href="/for-retailers"
@@ -123,7 +123,7 @@ export default async function RootPage() {
         <section className="px-6 py-16">
           <div className="flex items-center justify-between mb-8 max-w-4xl mx-auto">
             <h2 className="text-3xl font-black text-gray-900">Featured Drops</h2>
-            <Link href="/signup" className="text-sm font-semibold text-periwinkle hover:underline">
+            <Link href="/feed" className="text-sm font-semibold text-periwinkle hover:underline">
               See all →
             </Link>
           </div>
@@ -187,7 +187,7 @@ function FeaturedDropCard({ drop }: { drop: Drop }) {
   const spotsLeft = drop.total_spots - drop.spots_claimed
 
   return (
-    <Link href="/signup" className="group block">
+    <Link href={`/drops/${drop.id}`} className="group block">
       <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100 mb-2">
         {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
